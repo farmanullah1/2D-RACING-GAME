@@ -1,4 +1,4 @@
-import { Car, TileType, Vector2D, CarState } from "../types/game.types";
+import { Car, TileType, Vector2D, CarState, GameMode } from "../types/game.types";
 import { 
   FRICTION_ROAD, FRICTION_GRASS, FRICTION_GRAVEL, FRICTION_PIT,
   NITRO_SPEED_MULTIPLIER, NITRO_DRAIN_RATE, NITRO_REFILL_RATE, NITRO_DRIFT_BONUS,
@@ -18,7 +18,14 @@ export interface CarInput {
 }
 
 export class PhysicsEngine {
-  updateCar(car: Car, input: CarInput, delta: number, grid: number[][]): void {
+  updateCar(car: Car, input: CarInput, delta: number, grid: number[][], theme?: string): boolean {
+    if (car.state === CarState.Crashed) {
+      // Wrecked cars stay static
+      car.speed = 0;
+      car.velocity = { x: 0, y: 0 };
+      car.angularVelocity = 0;
+      return false;
+    }
     const currentTile = this.getCurrentTile(car, grid)
     const frictionCoeff = this.getFrictionForTile(currentTile)
 
@@ -50,7 +57,7 @@ export class PhysicsEngine {
     car.speed = Math.max(car.speed, -car.maxSpeed * 0.2) // Reverse speed limit
 
     // 4. Drift
-    this.applyDrift(car, input, delta)
+    this.applyDrift(car, input, delta, theme)
 
     // 5. Apply Velocity
     car.velocity = vecScale(direction, car.speed)
@@ -62,7 +69,8 @@ export class PhysicsEngine {
     car.position = vecAdd(car.position, vecScale(car.velocity, delta))
 
     // 6. Wall Collisions
-    this.resolveWallCollision(car, grid)
+    const wallHit = this.resolveWallCollision(car, grid)
+    return wallHit
   }
 
   getFrictionForTile(tile: TileType): number {
@@ -80,7 +88,7 @@ export class PhysicsEngine {
     car.speed = vecMag(car.velocity) * (car.speed < 0 ? -1 : 1)
   }
 
-  applyDrift(car: Car, input: CarInput, delta: number): void {
+  applyDrift(car: Car, input: CarInput, delta: number, theme?: string): void {
     const velAngle = Math.atan2(car.velocity.y, car.velocity.x)
     const slipAngle = Math.abs(angleDiff(velAngle, car.angle))
     car.driftAngle = slipAngle
@@ -88,12 +96,15 @@ export class PhysicsEngine {
     const isBraking = input.brake && car.speed > 100
     const isHardTurning = Math.abs((input.steerRight ? 1 : 0) - (input.steerLeft ? 1 : 0)) > 0.5
 
-    if (slipAngle > DRIFT_THRESHOLD && (isBraking || isHardTurning)) {
+    const driftThreshold = theme === 'arctic' ? DRIFT_THRESHOLD * 0.45 : DRIFT_THRESHOLD
+    const gripFactor = theme === 'arctic' ? DRIFT_GRIP_FACTOR * 0.4 : DRIFT_GRIP_FACTOR
+
+    if (slipAngle > driftThreshold && (isBraking || isHardTurning)) {
       car.state = CarState.Drifting
       // Reduce grip: blend velocity direction toward car's nose
       const noseDir = { x: Math.cos(car.angle), y: Math.sin(car.angle) }
       const currentDir = vecNorm(car.velocity)
-      const targetDir = vecNorm(vecAdd(vecScale(currentDir, 1 - DRIFT_GRIP_FACTOR), vecScale(noseDir, DRIFT_GRIP_FACTOR)))
+      const targetDir = vecNorm(vecAdd(vecScale(currentDir, 1 - gripFactor), vecScale(noseDir, gripFactor)))
       car.velocity = vecScale(targetDir, Math.abs(car.speed))
       
       // Nitro bonus
@@ -114,7 +125,7 @@ export class PhysicsEngine {
     if (car.nitro < 0) car.nitro = 0
   }
 
-  resolveWallCollision(car: Car, grid: number[][]): void {
+  resolveWallCollision(car: Car, grid: number[][]): boolean {
     const col = Math.floor(car.position.x / TILE_SIZE)
     const row = Math.floor(car.position.y / TILE_SIZE)
 
@@ -122,12 +133,16 @@ export class PhysicsEngine {
       car.position = car.lastValidPosition
       car.speed *= -COLLISION_BOUNCE
       car.screenShake = 8
+      return true
     } else {
       car.lastValidPosition = { ...car.position }
+      return false
     }
   }
 
-  resolveCarCollision(carA: Car, carB: Car): void {
+  resolveCarCollision(carA: Car, carB: Car, mode?: GameMode): boolean {
+    if (carA.state === CarState.Crashed || carB.state === CarState.Crashed) return false
+    
     const dist = vecDist(carA.position, carB.position)
     if (dist < carA.collisionRadius + carB.collisionRadius) {
       const normal = vecNorm(vecSub(carA.position, carB.position))
@@ -142,13 +157,40 @@ export class PhysicsEngine {
 
       carA.screenShake = 8
       carB.screenShake = 8
+
+      // Car fights damage logic
+      if (mode === GameMode.CarFights) {
+        const impactSpeed = vecMag(relativeVel)
+        if (impactSpeed > 60) {
+          const damageCoeff = 0.0016
+          let damageToA = impactSpeed * damageCoeff * (carB.nitroActive ? 2.5 : 1)
+          let damageToB = impactSpeed * damageCoeff * (carA.nitroActive ? 2.5 : 1)
+
+          // Front-rammer takes less damage, rammed takes more
+          if (Math.abs(carA.speed) > Math.abs(carB.speed)) {
+            damageToA *= 0.6
+            damageToB *= 1.4
+          } else {
+            damageToA *= 1.4
+            damageToB *= 0.6
+          }
+
+          carA.damageLevel = Math.min(1.0, carA.damageLevel + damageToA)
+          carB.damageLevel = Math.min(1.0, carB.damageLevel + damageToB)
+
+          if (carA.damageLevel >= 1.0) carA.state = CarState.Crashed
+          if (carB.damageLevel >= 1.0) carB.state = CarState.Crashed
+        }
+      }
       
       // Push cars apart to prevent sticking
       const overlap = (carA.collisionRadius + carB.collisionRadius) - dist
       const push = vecScale(normal, overlap / 2 + 1)
       carA.position = vecAdd(carA.position, push)
       carB.position = vecSub(carB.position, push)
+      return true
     }
+    return false
   }
 
   getCurrentTile(car: Car, grid: number[][]): TileType {

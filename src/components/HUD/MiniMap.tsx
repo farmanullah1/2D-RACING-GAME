@@ -1,12 +1,13 @@
 import React, { useRef, useEffect } from 'react'
 import { useGameState } from '../../App'
-import { TRACK_GRID } from '../../data/trackLayout'
-import { GRID_WIDTH, GRID_HEIGHT, TILE_SIZE } from '../../constants/gameConstants'
+import { TRACKS } from '../../data/tracks'
+import { TILE_SIZE } from '../../constants/gameConstants'
 import { TileType } from '../../types/game.types'
 
 const MiniMap: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const state = useGameState()
+  const track = TRACKS[state.selectedTrack || 0]
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -19,12 +20,16 @@ const MiniMap: React.FC = () => {
     canvas.height = size
     
     ctx.clearRect(0, 0, size, size)
-    const scale = size / (GRID_WIDTH * TILE_SIZE)
+    
+    const grid = track.grid
+    const gridHeight = grid.length
+    const gridWidth = grid[0].length
+    const scale = size / (gridWidth * TILE_SIZE)
 
     // Draw Track
-    for (let r = 0; r < GRID_HEIGHT; r++) {
-      for (let c = 0; c < GRID_WIDTH; c++) {
-        const tile = TRACK_GRID[r][c]
+    for (let r = 0; r < gridHeight; r++) {
+      for (let c = 0; c < gridWidth; c++) {
+        const tile = grid[r][c]
         if (tile === TileType.Road || tile === TileType.StartLine || tile === TileType.Checkpoint) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
           ctx.fillRect(c * TILE_SIZE * scale, r * TILE_SIZE * scale, TILE_SIZE * scale, TILE_SIZE * scale)
@@ -45,7 +50,7 @@ const MiniMap: React.FC = () => {
       ctx.arc(ai.car.position.x * scale, ai.car.position.y * scale, 2, 0, Math.PI * 2)
       ctx.fill()
     })
-  }, [state.player.position, state.aiDrivers])
+  }, [state.player.position, state.aiDrivers, track])
 
   return (
     <div className="bg-track-panel backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-panel overflow-hidden">

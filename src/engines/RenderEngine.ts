@@ -1,5 +1,5 @@
 import { 
-  GameState, Car, Camera, Vector2D, Particle, ParticleType, GameStatus, TileType 
+  GameState, Car, Camera, Vector2D, Particle, ParticleType, GameStatus, TileType, CarState, GameMode 
 } from "../types/game.types";
 import { 
   COLORS, CAR_WIDTH, CAR_HEIGHT, SHADOW_OFFSET_X, SHADOW_OFFSET_Y, 
@@ -22,7 +22,14 @@ export class RenderEngine {
   ): void {
     const { camera, currentDayTime, player, aiDrivers, particles, skidMarks, isRaining } = state
 
-    // ... (rest of methods)
+    // 1. Background
+    this.drawBackground(ctx, camera, currentDayTime)
+
+    // 2. Camera Transform Start
+    applyCameraTransform(ctx, camera)
+
+    // 3. Draw Track
+    this.drawOffscreenTrack(ctx, offscreenTrack)
     
     // 5. Skid Marks
     this.drawSkidMarks(ctx, skidMarks)
@@ -30,6 +37,34 @@ export class RenderEngine {
     // Ghost Car
     if (ghostCar) {
       this.drawCar(ctx, ghostCar, false, state.isNight, 0.35)
+    }
+
+    // 5.5. Draw Combat Power-ups
+    if (state.mode === GameMode.CarFights && state.powerUps) {
+      state.powerUps.forEach(p => {
+        if (p.active) {
+          ctx.save()
+          const floatOffset = Math.sin(state.frameCount * 0.06 + p.x) * 4
+          ctx.translate(p.x, p.y + floatOffset)
+          ctx.shadowColor = p.type === 'health' ? '#00ff88' : '#ff00ff'
+          ctx.shadowBlur = 10
+          ctx.rotate(state.frameCount * 0.02)
+          
+          if (p.type === 'health') {
+            ctx.fillStyle = '#00ff88'
+            ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill()
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 2.5
+            ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, 5); ctx.stroke()
+          } else {
+            ctx.fillStyle = '#ff00ff'
+            ctx.fillRect(-5, -8, 10, 16)
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(-2.5, -11, 5, 3)
+          }
+          ctx.restore()
+        }
+      })
     }
 
     // 6. Cars
@@ -42,6 +77,29 @@ export class RenderEngine {
     this.drawCarShadow(ctx, player)
     this.drawCar(ctx, player, true, state.isNight)
     this.drawCarHeadlights(ctx, player, state.isNight || state.currentDayTime > 0.7 || state.currentDayTime < 0.3)
+
+    // 6.5. Draw Above-Car Health Bars (Combat Mode)
+    if (state.mode === GameMode.CarFights) {
+      const drawHealthBar = (car: Car) => {
+        if (car.state === CarState.Crashed) return
+        ctx.save()
+        ctx.translate(car.position.x, car.position.y - 34)
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'
+        ctx.fillRect(-18, -3, 36, 5)
+        
+        const healthRatio = Math.max(0, 1.0 - car.damageLevel)
+        ctx.fillStyle = healthRatio > 0.5 ? '#00ff88' : healthRatio > 0.25 ? '#ffee00' : '#ff006e'
+        ctx.fillRect(-18, -3, 36 * healthRatio, 5)
+        
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)'
+        ctx.lineWidth = 0.8
+        ctx.strokeRect(-18, -3, 36, 5)
+        ctx.restore()
+      }
+      aiDrivers.forEach(ai => drawHealthBar(ai.car))
+      drawHealthBar(player)
+    }
 
     // 7. Particles
     this.drawParticles(ctx, particles)
@@ -122,46 +180,137 @@ export class RenderEngine {
       ctx.translate(car.position.x, car.position.y)
       ctx.rotate(car.angle)
 
-      // Body Roll simulation: slight vertical offset based on turning intensity
-      const rollAmount = car.angularVelocity * 2.5
+      // 1. Body Roll & G-Force Simulation
+      const rollAmount = car.angularVelocity * 2.8
       ctx.translate(0, rollAmount)
-      ctx.scale(1, 1 - Math.abs(car.angularVelocity) * 0.05)
+      ctx.scale(1, 1 - Math.abs(car.angularVelocity) * 0.06)
 
-      // Body
-      const grad = ctx.createLinearGradient(-CAR_WIDTH/2, 0, CAR_WIDTH/2, 0)
-      grad.addColorStop(0, colorSet.accent)
-      grad.addColorStop(0.5, colorSet.body)
-      grad.addColorStop(1, colorSet.accent)
-      ctx.fillStyle = grad
-      roundedRect(ctx, -CAR_HEIGHT / 2, -CAR_WIDTH / 2, CAR_HEIGHT, CAR_WIDTH, 8)
-      ctx.fill()
-
-      // Cabin
-      ctx.fillStyle = '#111'
-      roundedRect(ctx, -CAR_HEIGHT / 6, -CAR_WIDTH / 3, CAR_HEIGHT / 2, (CAR_WIDTH * 2) / 3, 4)
-      ctx.fill()
-
-      // Windshield
-      ctx.fillStyle = 'rgba(150, 200, 220, 0.6)'
-      ctx.fillRect(CAR_HEIGHT / 10, -CAR_WIDTH / 3 + 2, CAR_HEIGHT / 6, (CAR_WIDTH * 2) / 3 - 4)
-
-      // Wheels
-      ctx.fillStyle = '#222'
-      const wheelW = 12, wheelH = 6
-      const wheelX = CAR_HEIGHT / 3, wheelY = CAR_WIDTH / 2
-      ctx.fillRect(wheelX - wheelW/2, wheelY - wheelH, wheelW, wheelH)
-      ctx.fillRect(wheelX - wheelW/2, -wheelY, wheelW, wheelH)
-      ctx.fillRect(-wheelX - wheelW/2, wheelY - wheelH, wheelW, wheelH)
-      ctx.fillRect(-wheelX - wheelW/2, -wheelY, wheelW, wheelH)
-
-      // Lights
-      ctx.fillStyle = isNight ? '#ffed85' : '#fff'
-      ctx.fillRect(CAR_HEIGHT / 2 - 4, -CAR_WIDTH / 2 + 2, 4, 6)
-      ctx.fillRect(CAR_HEIGHT / 2 - 4, CAR_WIDTH / 2 - 8, 4, 6)
+      // 2. Base metallic chassis paint gradient
+      const bodyGrad = ctx.createLinearGradient(-CAR_HEIGHT/2, 0, CAR_HEIGHT/2, 0)
+      bodyGrad.addColorStop(0, colorSet.accent)
+      bodyGrad.addColorStop(0.3, colorSet.body)
+      bodyGrad.addColorStop(0.7, colorSet.body)
+      bodyGrad.addColorStop(1, colorSet.accent)
+      ctx.fillStyle = bodyGrad
       
-      ctx.fillStyle = car.speed < 0 || car.state === 2 ? '#ff0000' : '#800000'
-      ctx.fillRect(-CAR_HEIGHT / 2, -CAR_WIDTH / 2 + 2, 3, 5)
-      ctx.fillRect(-CAR_HEIGHT / 2, CAR_WIDTH / 2 - 7, 3, 5)
+      // Aerodynamic rounded chassis shape
+      roundedRect(ctx, -CAR_HEIGHT / 2, -CAR_WIDTH / 2, CAR_HEIGHT, CAR_WIDTH, 10)
+      ctx.fill()
+
+      // 3. Specular highlight paint sweeps (gloss reflection)
+      const specGrad = ctx.createLinearGradient(-CAR_HEIGHT/2, -CAR_WIDTH/2, CAR_HEIGHT/2, CAR_WIDTH/2)
+      specGrad.addColorStop(0, 'rgba(255, 255, 255, 0.0)')
+      specGrad.addColorStop(0.48, 'rgba(255, 255, 255, 0.0)')
+      specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.22)') // Sharp glossy glare
+      specGrad.addColorStop(0.52, 'rgba(255, 255, 255, 0.0)')
+      ctx.fillStyle = specGrad
+      roundedRect(ctx, -CAR_HEIGHT / 2, -CAR_WIDTH / 2, CAR_HEIGHT, CAR_WIDTH, 10)
+      ctx.fill()
+
+      // 4. Aerodynamic Hood Vents (Carbon-Fiber slots)
+      ctx.fillStyle = 'rgba(15, 15, 20, 0.75)'
+      ctx.fillRect(CAR_HEIGHT / 6, -CAR_WIDTH / 5, 8, 2.5)
+      ctx.fillRect(CAR_HEIGHT / 6, CAR_WIDTH / 5 - 2.5, 8, 2.5)
+      ctx.fillRect(CAR_HEIGHT / 4, -CAR_WIDTH / 4, 6, 2)
+      ctx.fillRect(CAR_HEIGHT / 4, CAR_WIDTH / 4 - 2, 6, 2)
+
+      // 5. Carbon-Fiber Rear Spoiler / Wing
+      ctx.fillStyle = '#111116' // Carbon black
+      ctx.fillRect(-CAR_HEIGHT / 2 - 4, -CAR_WIDTH / 2 - 2, 5, CAR_WIDTH + 4) // Wing blade
+      // Spoiler mount brackets
+      ctx.fillStyle = '#22222b'
+      ctx.fillRect(-CAR_HEIGHT / 2, -CAR_WIDTH / 4, 4, 2)
+      ctx.fillRect(-CAR_HEIGHT / 2, CAR_WIDTH / 4 - 2, 4, 2)
+
+      // 6. 3D Cabin Canopy
+      ctx.fillStyle = '#15151e' // Sleek black cabin frame
+      roundedRect(ctx, -CAR_HEIGHT / 6, -CAR_WIDTH / 3, CAR_HEIGHT / 2, (CAR_WIDTH * 2) / 3, 6)
+      ctx.fill()
+
+      // Windshield glossy glass
+      const glassGrad = ctx.createLinearGradient(0, -CAR_WIDTH/3, 0, CAR_WIDTH/3)
+      glassGrad.addColorStop(0, 'rgba(110, 180, 210, 0.85)')
+      glassGrad.addColorStop(0.5, 'rgba(150, 220, 245, 0.85)')
+      glassGrad.addColorStop(1, 'rgba(110, 180, 210, 0.85)')
+      ctx.fillStyle = glassGrad
+      ctx.fillRect(CAR_HEIGHT / 10, -CAR_WIDTH / 3 + 2.5, CAR_HEIGHT / 6, (CAR_WIDTH * 2) / 3 - 5)
+
+      // Specular cabin stripes (glare reflection)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(CAR_HEIGHT / 10 + 2, -CAR_WIDTH / 3 + 5)
+      ctx.lineTo(CAR_HEIGHT / 4 - 2, 0)
+      ctx.stroke()
+
+      // 7. Dynamic Animated Alloy Wheels (4 wheels)
+      const drawWheel = (wx: number, wy: number, steer: boolean) => {
+        ctx.save()
+        ctx.translate(wx, wy)
+        // If front wheels, apply visual steering angle based on angular velocity
+        if (steer) {
+          ctx.rotate(car.angularVelocity * 0.3)
+        }
+        
+        // Spin wheels based on speed
+        const spinAngle = (car.wheelRotation || 0) * (wx > 0 ? 1 : 0.8)
+        ctx.rotate(spinAngle)
+
+        // Tires
+        ctx.fillStyle = '#18181e'
+        ctx.fillRect(-8, -4, 16, 8)
+
+        // Rims (Alloy silver center)
+        ctx.fillStyle = colorSet.rim || '#dee2e6'
+        ctx.beginPath()
+        ctx.arc(0, 0, 3.5, 0, Math.PI * 2)
+        ctx.fill()
+
+        // 3D spokes on Rims
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)'
+        ctx.lineWidth = 1
+        for (let s = 0; s < 4; s++) {
+          ctx.beginPath()
+          ctx.moveTo(0, 0)
+          ctx.lineTo(Math.cos(s * Math.PI / 2) * 3.5, Math.sin(s * Math.PI / 2) * 3.5)
+          ctx.stroke()
+        }
+        ctx.restore()
+      }
+
+      const wheelX = CAR_HEIGHT / 3.5
+      const wheelY = CAR_WIDTH / 2.2
+      drawWheel(wheelX, -wheelY, true)  // Front Left
+      drawWheel(wheelX, wheelY, true)   // Front Right
+      drawWheel(-wheelX, -wheelY, false) // Rear Left
+      drawWheel(-wheelX, wheelY, false)  // Rear Right
+
+      // 8. Headlights (small bulbs)
+      ctx.fillStyle = isNight ? '#ffee32' : '#ffffff'
+      ctx.fillRect(CAR_HEIGHT / 2 - 3, -CAR_WIDTH / 2 + 3, 3, 5)
+      ctx.fillRect(CAR_HEIGHT / 2 - 3, CAR_WIDTH / 2 - 8, 3, 5)
+      
+      // 9. Tail Lights / Brake Lights
+      const isBraking = car.speed < 0 || car.state === CarState.Braking
+      ctx.fillStyle = isBraking ? '#ff0055' : '#a80000'
+      if (isBraking) {
+        // Glowing red brake lights
+        ctx.shadowColor = '#ff0055'
+        ctx.shadowBlur = 8
+      }
+      ctx.fillRect(-CAR_HEIGHT / 2, -CAR_WIDTH / 2 + 3, 3, 4)
+      ctx.fillRect(-CAR_HEIGHT / 2, CAR_WIDTH / 2 - 7, 3, 4)
+      ctx.shadowBlur = 0 // Reset shadow
+
+      // 10. Glowing dual chrome exhausts
+      ctx.fillStyle = '#adb5bd'
+      ctx.fillRect(-CAR_HEIGHT / 2 - 2, -5, 2, 2)
+      ctx.fillRect(-CAR_HEIGHT / 2 - 2, 3, 2, 2)
+      if (car.nitroActive) {
+        ctx.fillStyle = '#00f5ff' // Plasma glow exhaust
+        ctx.fillRect(-CAR_HEIGHT / 2 - 3, -5, 2, 2)
+        ctx.fillRect(-CAR_HEIGHT / 2 - 3, 3, 2, 2)
+      }
     })
   }
 
@@ -191,10 +340,73 @@ export class RenderEngine {
     particles.forEach(p => {
       ctx.save()
       ctx.globalAlpha = p.alpha
-      ctx.fillStyle = p.color
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-      ctx.fill()
+
+      switch (p.type) {
+        case ParticleType.DriftSmoke:
+        case ParticleType.ExhaustSmoke:
+          // Fluffy smoke circles
+          ctx.fillStyle = p.color || 'rgba(180, 180, 180, 0.3)'
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+          ctx.fill()
+          break
+
+        case ParticleType.DustCloud:
+          // Fluffy dust clouds
+          ctx.fillStyle = p.color || 'rgba(180, 140, 80, 0.3)'
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+          ctx.fill()
+          break
+
+        case ParticleType.NitroFlame:
+          // Glowing elongated fire oval shooting backward
+          ctx.translate(p.x, p.y)
+          const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size)
+          grad.addColorStop(0, '#ffffff')
+          grad.addColorStop(0.2, '#ffee00')
+          grad.addColorStop(0.6, '#ff6b00')
+          grad.addColorStop(1.0, 'rgba(0, 245, 255, 0)')
+          ctx.fillStyle = grad
+          ctx.beginPath()
+          ctx.ellipse(0, 0, p.size * 1.5, p.size * 0.6, p.rotation || 0, 0, Math.PI * 2)
+          ctx.fill()
+          break
+
+        case ParticleType.Spark:
+          // Motion blurred bright streak along velocity vector
+          ctx.strokeStyle = p.color || '#fff176'
+          ctx.lineWidth = p.size
+          ctx.beginPath()
+          ctx.moveTo(p.x, p.y)
+          ctx.lineTo(p.x - p.vx * 0.05, p.y - p.vy * 0.05)
+          ctx.stroke()
+          break
+
+        case ParticleType.RainSplash:
+          // Expanding ripple ring
+          ctx.strokeStyle = p.color || 'rgba(0, 245, 255, 0.6)'
+          ctx.lineWidth = 1.5
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size * (1 + (1 - p.life) * 2), 0, Math.PI * 2)
+          ctx.stroke()
+          break
+
+        case ParticleType.Confetti:
+          // Rotating tiny colorful sheets
+          ctx.fillStyle = p.color || '#ff006e'
+          ctx.translate(p.x, p.y)
+          ctx.rotate((p.rotation || 0) + p.life * 10)
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2)
+          break
+
+        default:
+          ctx.fillStyle = p.color
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+          ctx.fill()
+      }
+
       ctx.restore()
     })
   }

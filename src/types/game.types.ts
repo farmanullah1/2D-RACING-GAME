@@ -33,6 +33,7 @@ export interface Car {
   angularVelocity: number
   speed: number              // current speed in canvas units/sec
   maxSpeed: number
+  baseMaxSpeed: number
   acceleration: number
   brakeForce: number
   grip: number               // 0.0 – 1.0, lower = more drift
@@ -104,7 +105,16 @@ export enum GameStatus {
   Paused, RaceFinished, GameOver, Settings, Leaderboard
 }
 
-export enum GameMode { TimeTrial, AIRace, FreeRoam }
+export enum GameMode { TimeTrial, AIRace, FreeRoam, CarFights }
+
+export interface PowerUp {
+  id: string
+  x: number
+  y: number
+  type: 'health' | 'nitro'
+  active: boolean
+  respawnTimer: number
+}
 
 export interface RaceResult {
   position: number
@@ -152,4 +162,5 @@ export interface GameState {
   difficulty: AIDifficulty
   selectedColor: CarColor
   selectedTrack: number
+  powerUps: PowerUp[]
 }

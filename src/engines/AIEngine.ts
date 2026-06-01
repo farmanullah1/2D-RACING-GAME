@@ -1,6 +1,6 @@
-import { AIDriver, Car, Vector2D, CarState, AIDifficulty } from "../types/game.types";
+import { AIDriver, Car, Vector2D, CarState, AIDifficulty, GameMode, PowerUp } from "../types/game.types";
 import { 
-  AI_WAYPOINT_RADIUS, AI_SPEEDS, PLAYER_TURN_SPEED 
+  AI_WAYPOINT_RADIUS, AI_SPEEDS, PLAYER_TURN_SPEED, PLAYER_MAX_SPEED 
 } from "../constants/gameConstants";
 import { 
   vecDist, angleDiff, normalizeAngle, clamp 
@@ -8,13 +8,53 @@ import {
 import { CarInput } from "./PhysicsEngine";
 
 export class AIEngine {
-  updateDriver(ai: AIDriver, allCars: Car[], delta: number, waypoints: Vector2D[]): CarInput {
+  updateDriver(
+    ai: AIDriver, 
+    allCars: Car[], 
+    delta: number, 
+    waypoints: Vector2D[], 
+    mode?: GameMode, 
+    powerUps?: PowerUp[]
+  ): CarInput {
     const car = ai.car
-    const target = waypoints[ai.targetWaypointIndex]
+    
+    // Combat seeking target calculation
+    let combatTarget: Vector2D | null = null
+    
+    if (mode === GameMode.CarFights) {
+      if (car.damageLevel > 0.4 && powerUps && powerUps.length > 0) {
+        const activeRepairs = powerUps.filter(p => p.type === 'health' && p.active)
+        if (activeRepairs.length > 0) {
+          let minD = Infinity
+          activeRepairs.forEach(rep => {
+            const d = vecDist(car.position, rep)
+            if (d < minD) {
+              minD = d
+              combatTarget = rep
+            }
+          })
+        }
+      }
+      
+      if (!combatTarget) {
+        let minD = Infinity
+        allCars.forEach(other => {
+          if (other.id !== car.id && other.state !== CarState.Crashed) {
+            const d = vecDist(car.position, other.position)
+            if (d < minD) {
+              minD = d
+              combatTarget = other.position
+            }
+          }
+        })
+      }
+    }
+
+    const target = combatTarget || waypoints[ai.targetWaypointIndex]
     const dist = vecDist(car.position, target)
 
-    // Advance waypoint
-    if (dist < AI_WAYPOINT_RADIUS) {
+    // Advance waypoint only if not in combat seeking mode
+    if (!combatTarget && dist < AI_WAYPOINT_RADIUS) {
       ai.targetWaypointIndex = (ai.targetWaypointIndex + 1) % waypoints.length
     }
 
@@ -91,10 +131,15 @@ export class AIEngine {
     const dist = vecDist(ai.car.position, playerCar.position)
     const isAhead = ai.car.totalRaceTime < playerCar.totalRaceTime // Simplified
     
-    if (isAhead && dist > 500) {
-      ai.car.maxSpeed *= 0.9
+    // Reset to base max speed first
+    ai.car.maxSpeed = PLAYER_MAX_SPEED
+    
+    if (isAhead && dist > 300) {
+      const factor = Math.min(0.15, (dist - 300) / 1000 * 0.15)
+      ai.car.maxSpeed *= (1 - factor)
     } else if (!isAhead && dist > 500) {
-      ai.car.maxSpeed *= 1.1
+      const factor = Math.min(0.10, (dist - 500) / 1000 * 0.10)
+      ai.car.maxSpeed *= (1 + factor)
     }
   }
 }

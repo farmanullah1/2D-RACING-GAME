@@ -56,3 +56,33 @@ canvas {
   max-height: 100%;
   object-fit: contain;
 }
+
+/* Premium Glassmorphic Panels */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Floating animation */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Neon Pink pulsing glow */
+@keyframes neon-glow-pink {
+  from { box-shadow: 0 0 5px rgba(255, 0, 110, 0.3), 0 0 10px rgba(255, 0, 110, 0.2); }
+  to { box-shadow: 0 0 15px rgba(255, 0, 110, 0.7), 0 0 30px rgba(255, 0, 110, 0.4); }
+}
+
+.shadow-neon-pink {
+  animation: neon-glow-pink 1.5s ease-in-out infinite alternate;
+}

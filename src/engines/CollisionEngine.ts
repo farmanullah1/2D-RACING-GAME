@@ -3,7 +3,7 @@ import { TILE_SIZE, GRID_WIDTH, GRID_HEIGHT, TOTAL_LAPS } from "../constants/gam
 import { CAR_WIDTH, CAR_HEIGHT } from "../constants/graphicsConstants";
 
 export class CollisionEngine {
-  checkLapCompletion(car: Car, grid: number[][]): boolean {
+  checkLapCompletion(car: Car, grid: number[][], requiredCheckpoints: number = 5): boolean {
     const col = Math.floor(car.position.x / TILE_SIZE)
     const row = Math.floor(car.position.y / TILE_SIZE)
     
@@ -11,8 +11,8 @@ export class CollisionEngine {
     
     const tile = grid[row][col]
     if (tile === TileType.StartLine) {
-      // Must pass all checkpoints (assuming 5 checkpoints for simplicity)
-      if (car.checkpointsPassed.length >= 5) {
+      // Must pass all checkpoints of the track
+      if (car.checkpointsPassed.length >= requiredCheckpoints) {
         car.lap++
         car.checkpointsPassed = []
         return true

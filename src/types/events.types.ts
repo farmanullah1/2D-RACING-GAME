@@ -18,3 +18,4 @@ export type GameAction =
   | { type: 'UPDATE_SETTINGS'; settings: Partial<GameSettings> }
   | { type: 'RESET_RACE' }
   | { type: 'SET_FPS'; fps: number }
+  | { type: 'SET_STATUS'; status: GameStatus }

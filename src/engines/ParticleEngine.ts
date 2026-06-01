@@ -18,6 +18,8 @@ interface EmitOptions {
   color?: string
   gravity?: number
   fadeOut?: boolean
+  rotation?: number
+  rotationSpeed?: number
 }
 
 export class ParticleEngine {
@@ -59,6 +61,8 @@ export class ParticleEngine {
         p.color = options.color || 'white'
         p.alpha = 1.0
         p.type = type
+        p.rotation = options.rotation || 0
+        p.rotationSpeed = options.rotationSpeed || 0
         
         emitted++
       }
