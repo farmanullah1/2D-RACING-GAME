@@ -80,52 +80,64 @@ const StartMenu: React.FC = () => {
         <p className="text-xl font-mono text-white/40 tracking-[0.5em] mb-12 uppercase select-none">2D Racing Game</p>
 
         {/* Mode Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 w-full mb-8">
           <button 
             onMouseEnter={() => audio.playMenuTick()}
             onClick={() => { audio.playTransitionSweep(); dispatch({ type: 'START_RACE', mode: GameMode.AIRace }) }}
-            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl hover:border-neon-blue/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
+            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl hover:border-neon-blue/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
           >
             <div>
-              <div className="text-4xl mb-4">🏁</div>
-              <div className="text-2xl font-racing font-bold text-white group-hover:text-neon-blue">GRAND PRIX</div>
-              <p className="text-xs text-white/40 mt-2">Race against 3 AI opponents over 3 laps.</p>
+              <div className="text-3xl mb-3">🏁</div>
+              <div className="text-lg font-racing font-bold text-white group-hover:text-neon-blue">GRAND PRIX</div>
+              <p className="text-[10px] text-white/40 mt-1">Race 3 AI opponents over 3 laps.</p>
             </div>
           </button>
 
           <button 
             onMouseEnter={() => audio.playMenuTick()}
             onClick={() => { audio.playTransitionSweep(); dispatch({ type: 'START_RACE', mode: GameMode.TimeTrial }) }}
-            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl hover:border-neon-green/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
+            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl hover:border-neon-green/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
           >
             <div>
-              <div className="text-4xl mb-4">⏱️</div>
-              <div className="text-2xl font-racing font-bold text-white group-hover:text-neon-green">TIME TRIAL</div>
-              <p className="text-xs text-white/40 mt-2">Solo race against the clock with personal ghosts.</p>
+              <div className="text-3xl mb-3">⏱️</div>
+              <div className="text-lg font-racing font-bold text-white group-hover:text-neon-green">TIME TRIAL</div>
+              <p className="text-[10px] text-white/40 mt-1">Solo race against the clock with personal ghosts.</p>
             </div>
           </button>
 
           <button 
             onMouseEnter={() => audio.playMenuTick()}
             onClick={() => { audio.playTransitionSweep(); dispatch({ type: 'START_RACE', mode: GameMode.FreeRoam }) }}
-            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl hover:border-neon-orange/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
+            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl hover:border-neon-orange/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
           >
             <div>
-              <div className="text-4xl mb-4">🚗</div>
-              <div className="text-2xl font-racing font-bold text-white group-hover:text-neon-orange">FREE ROAM</div>
-              <p className="text-xs text-white/40 mt-2">No laps, no opponents. Just drift and play.</p>
+              <div className="text-3xl mb-3">🚗</div>
+              <div className="text-lg font-racing font-bold text-white group-hover:text-neon-orange">FREE ROAM</div>
+              <p className="text-[10px] text-white/40 mt-1">No laps, no opponents. Just drift and play.</p>
             </div>
           </button>
 
           <button 
             onMouseEnter={() => audio.playMenuTick()}
             onClick={() => { audio.playTransitionSweep(); dispatch({ type: 'START_RACE', mode: GameMode.CarFights }) }}
-            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl hover:border-neon-pink/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
+            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl hover:border-neon-pink/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
           >
             <div>
-              <div className="text-4xl mb-4">💀</div>
-              <div className="text-2xl font-racing font-bold text-white group-hover:text-neon-pink animate-glow">CAR FIGHTS</div>
-              <p className="text-xs text-white/40 mt-2">Thunderdome combat! Ram opponents and collect repair wrenches.</p>
+              <div className="text-3xl mb-3">💀</div>
+              <div className="text-lg font-racing font-bold text-white group-hover:text-neon-pink">CAR FIGHTS</div>
+              <p className="text-[10px] text-white/40 mt-1">Ram opponents and collect repair wrenches.</p>
+            </div>
+          </button>
+
+          <button 
+            onMouseEnter={() => audio.playMenuTick()}
+            onClick={() => { audio.playTransitionSweep(); dispatch({ type: 'START_RACE', mode: GameMode.MegaGrid }) }}
+            className="group relative bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl hover:border-neon-yellow/50 transition-all duration-300 hover:scale-102 hover:bg-white/10 flex flex-col justify-between"
+          >
+            <div>
+              <div className="text-3xl mb-3">⚡</div>
+              <div className="text-lg font-racing font-bold text-white group-hover:text-neon-yellow animate-glow">MEGA GRID</div>
+              <p className="text-[10px] text-white/40 mt-1">Race against a staggered F1 grid of 15 AIs!</p>
             </div>
           </button>
         </div>

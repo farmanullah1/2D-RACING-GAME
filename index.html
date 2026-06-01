@@ -3,18 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0a0a14" />
-    <meta name="description" content="VelocityX: A professional, production-ready 2D top-down car racing game built with React, TypeScript, and HTML5 Canvas. Experience drifting, dynamic weather, and smart AI." />
-    <meta name="keywords" content="2D racing game, HTML5 Canvas, React, TypeScript, car racing, drifting game" />
-    <meta name="author" content="Farmanullah" />
+    
+    <!-- Primary SEO Meta Tags -->
+    <meta name="description" content="VelocityX: Ultimate high-performance 2D top-down car racing & combat game. Built with React 18, TypeScript, and HTML5 Canvas. Experience advanced car physics, realistic drifting, night-vision flashlights, procedural magma tracks, and a 16-Car staggered Mega Grid!" />
+    <meta name="keywords" content="2D racing game, HTML5 Canvas game, React racing game, top-down racing, car combat, destruction derby, drift simulator, F1 starting grid, procedural audio synthesis, browser game" />
+    <meta name="author" content="Farman Ullah" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- OpenGraph (Facebook / LinkedIn) social-media sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="VelocityX | Ultimate 2D Canvas Car Racing & Combat Game" />
+    <meta property="og:description" content="High-performance top-down car drifting, F1-style staggered starts, icy slip streams, and Thunderdome combat derby. Experience 60 FPS arcade action." />
+    <meta property="og:url" content="https://farmanullah1.github.io/2D-RACING-GAME" />
+    <meta property="og:site_name" content="VelocityX Game" />
+    <meta property="og:image" content="https://farmanullah1.github.io/2D-RACING-GAME/og-banner.png" />
+    
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="VelocityX | Ultimate 2D Canvas Car Racing & Combat Game" />
+    <meta name="twitter:description" content="Race against a staggered 16-car grid or ram opponents in volcanic arenas with full procedural audio. Play free in your browser." />
+    <meta name="twitter:image" content="https://farmanullah1.github.io/2D-RACING-GAME/og-banner.png" />
+    
+    <!-- Google Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>VelocityX | Ultimate 2D Racing Experience</title>
+    
+    <title>VelocityX | Ultimate 2D Canvas Car Racing & Combat Game</title>
   </head>
   <body class="bg-[#0a0a14] text-white overflow-hidden select-none">
-    <div id="root"></div>
+    <!-- Hidden semantic H1 for search crawler indexing -->
+    <h1 style="display: none;">VelocityX — Premium 2D HTML5 Canvas Top-Down Car Racing & Destruction Derby Combat Game</h1>
+    
+    <!-- Main game container with unique ID -->
+    <div id="root" class="w-full h-screen relative"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

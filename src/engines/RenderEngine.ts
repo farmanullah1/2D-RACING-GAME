@@ -115,6 +115,93 @@ export class RenderEngine {
     this.drawVignetteEffect(ctx)
   }
 
+  drawCloudShadows(ctx: CanvasRenderingContext2D, camera: Camera, frameCount: number): void {
+    ctx.save()
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.08)' // very soft cloud shadow
+    
+    const cloudSpeed = 0.45
+    const driftX = (frameCount * cloudSpeed)
+    const driftY = (frameCount * cloudSpeed * 0.35)
+    
+    // Render 5 large shifting clouds looping across map boundaries (up to 4000x4000)
+    const clouds = [
+      { x: 300 + driftX, y: 200 + driftY, rx: 260, ry: 130 },
+      { x: 1400 + driftX, y: 700 + driftY, rx: 340, ry: 170 },
+      { x: 2500 + driftX, y: 150 + driftY, rx: 280, ry: 140 },
+      { x: 900 + driftX, y: 1600 + driftY, rx: 380, ry: 190 },
+      { x: 1900 + driftX, y: 2100 + driftY, rx: 310, ry: 155 },
+    ]
+    
+    clouds.forEach(c => {
+      const mapX = c.x % 4200
+      const mapY = c.y % 3200
+      
+      ctx.beginPath()
+      ctx.ellipse(mapX, mapY, c.rx, c.ry, 0.35, 0, Math.PI * 2)
+      ctx.fill()
+    })
+    ctx.restore()
+  }
+
+  drawDynamicDecorations(ctx: CanvasRenderingContext2D, grid: number[][], camera: Camera, frameCount: number): void {
+    const TILE_SIZE = 64
+    if (!grid || grid.length === 0) return
+
+    // Viewport frustum culling boundaries
+    const startCol = Math.max(0, Math.floor((camera.x - window.innerWidth / 2) / TILE_SIZE) - 2)
+    const endCol = Math.min(grid[0].length - 1, Math.floor((camera.x + window.innerWidth / 2) / TILE_SIZE) + 2)
+    const startRow = Math.max(0, Math.floor((camera.y - window.innerHeight / 2) / TILE_SIZE) - 2)
+    const endRow = Math.min(grid.length - 1, Math.floor((camera.y + window.innerHeight / 2) / TILE_SIZE) + 2)
+
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol; c <= endCol; c++) {
+        // Draw elegant wind turbines on certain Grass tiles
+        if (grid[r][c] === TileType.Grass && (r * 7 + c * 13) % 17 === 0) {
+          const x = c * TILE_SIZE + TILE_SIZE / 2
+          const y = r * TILE_SIZE + TILE_SIZE / 2
+
+          ctx.save()
+          // Soft 3D mast shadow
+          ctx.shadowColor = 'rgba(0,0,0,0.32)'
+          ctx.shadowBlur = 4
+          ctx.shadowOffsetX = 3
+          ctx.shadowOffsetY = 4
+
+          // Turbine mast (metallic white)
+          ctx.strokeStyle = '#e2e8f0'
+          ctx.lineWidth = 2.5
+          ctx.beginPath()
+          ctx.moveTo(x, y + 16)
+          ctx.lineTo(x, y - 12)
+          ctx.stroke()
+
+          // Center rotating hub
+          ctx.fillStyle = '#cbd5e1'
+          ctx.beginPath()
+          ctx.arc(x, y - 12, 3.2, 0, Math.PI * 2)
+          ctx.fill()
+
+          // Spinning blades
+          const angle = (frameCount * 0.032) + (r * 0.6)
+          ctx.strokeStyle = '#ffffff'
+          ctx.lineWidth = 1.2
+
+          for (let b = 0; b < 3; b++) {
+            ctx.save()
+            ctx.translate(x, y - 12)
+            ctx.rotate(angle + (b * Math.PI * 2) / 3)
+            ctx.beginPath()
+            ctx.moveTo(0, 0)
+            ctx.lineTo(0, -18) // Blade length
+            ctx.stroke()
+            ctx.restore()
+          }
+          ctx.restore()
+        }
+      }
+    }
+  }
+
   drawBackground(ctx: CanvasRenderingContext2D, camera: Camera, dayTime: number): void {
     const { width, height } = ctx.canvas
     

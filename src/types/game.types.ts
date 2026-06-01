@@ -105,7 +105,7 @@ export enum GameStatus {
   Paused, RaceFinished, GameOver, Settings, Leaderboard
 }
 
-export enum GameMode { TimeTrial, AIRace, FreeRoam, CarFights }
+export enum GameMode { TimeTrial, AIRace, FreeRoam, CarFights, MegaGrid }
 
 export interface PowerUp {
   id: string

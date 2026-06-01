@@ -24,10 +24,10 @@ const generateReverseWaypoints = (waypoints: Vector2D[]): Vector2D[] => {
 }
 
 export const TRACKS: TrackData[] = [
+  ARCTIC_TRACK,
   PRO_TRACK,
   DESERT_TRACK,
   NEON_TRACK,
-  ARCTIC_TRACK,
   VOLCANO_TRACK,
   {
     id: 'circuit-alpha',

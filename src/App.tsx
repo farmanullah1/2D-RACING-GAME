@@ -1,5 +1,5 @@
 import React, { useReducer, createContext, useContext, useMemo } from 'react'
-import { GameState, GameStatus, GameMode, AIDifficulty, CarState } from './types/game.types'
+import { GameState, GameStatus, GameMode, AIDifficulty, CarState, CarColor } from './types/game.types'
 import { GameAction } from './types/events.types'
 import { START_POSITION, START_ANGLE } from './data/trackLayout'
 import { PLAYER_MAX_SPEED, PLAYER_ACCELERATION, PLAYER_BRAKE_FORCE, TOTAL_LAPS } from './constants/gameConstants'
@@ -127,8 +127,41 @@ import { loadLeaderboard, saveLeaderboard, saveBestLap, loadBestLap, saveSetting
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
-    case 'START_RACE':
+    case 'START_RACE': {
       const track = TRACKS[state.selectedTrack]
+      const noseDir = { x: Math.cos(track.startAngle), y: Math.sin(track.startAngle) }
+      const rightDir = { x: -Math.sin(track.startAngle), y: Math.cos(track.startAngle) }
+      
+      let aiDriversList: any[] = []
+
+      if (action.mode === GameMode.AIRace || action.mode === GameMode.CarFights) {
+        // Standard staggered 3 AI lineup
+        aiDriversList = [
+          { car: { ...createInitialCar('ai1', false, 'blue'), position: { x: track.startPosition.x - 85 * noseDir.x - 30 * rightDir.x, y: track.startPosition.y - 85 * noseDir.y - 30 * rightDir.y }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
+          { car: { ...createInitialCar('ai2', false, 'silver'), position: { x: track.startPosition.x - 85 * noseDir.x + 30 * rightDir.x, y: track.startPosition.y - 85 * noseDir.y + 30 * rightDir.y }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
+          { car: { ...createInitialCar('ai3', false, 'gold'), position: { x: track.startPosition.x - 170 * noseDir.x - 30 * rightDir.x, y: track.startPosition.y - 170 * noseDir.y - 30 * rightDir.y }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
+        ]
+      } else if (action.mode === GameMode.MegaGrid) {
+        // Massive 15 AI grid lineup (16 cars total)
+        const aiColors: CarColor[] = ['blue', 'silver', 'gold', 'purple', 'green', 'pink', 'cyan', 'yellow', 'white', 'black', 'orange', 'blue', 'silver', 'gold', 'purple']
+        for (let i = 0; i < 15; i++) {
+          const rowIdx = Math.floor(i / 2) + 1
+          const colSign = i % 2 === 0 ? -1 : 1
+          const pos = {
+            x: track.startPosition.x - (rowIdx * 90) * noseDir.x + (colSign * 32) * rightDir.x,
+            y: track.startPosition.y - (rowIdx * 90) * noseDir.y + (colSign * 32) * rightDir.y
+          }
+          aiDriversList.push({
+            car: { ...createInitialCar(`ai${i + 1}`, false, aiColors[i]), position: pos, angle: track.startAngle },
+            targetWaypointIndex: 0,
+            difficulty: state.difficulty,
+            aggression: 0.4 + (i % 3) * 0.12,
+            reactionDelay: 0,
+            rubberBanding: 0.45 + (i % 3) * 0.08
+          })
+        }
+      }
+
       return {
         ...state,
         status: GameStatus.Countdown,
@@ -136,11 +169,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         countdownValue: 3,
         raceTime: 0,
         player: { ...createInitialCar('player', true, state.selectedColor), position: { ...track.startPosition }, angle: track.startAngle },
-        aiDrivers: (action.mode === GameMode.AIRace || action.mode === GameMode.CarFights) ? [
-          { car: { ...createInitialCar('ai1', false, 'blue'), position: { ...track.startPosition }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
-          { car: { ...createInitialCar('ai2', false, 'silver'), position: { ...track.startPosition }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
-          { car: { ...createInitialCar('ai3', false, 'gold'), position: { ...track.startPosition }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
-        ] : [],
+        aiDrivers: aiDriversList,
         powerUps: action.mode === GameMode.CarFights ? [
           { id: 'repair1', x: 10 * 64 + 32, y: 5 * 64 + 32, type: 'health', active: true, respawnTimer: 0 },
           { id: 'repair2', x: 32 * 64 + 32, y: 13 * 64 + 32, type: 'health', active: true, respawnTimer: 0 },
@@ -148,6 +177,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           { id: 'nitro2', x: 32 * 64 + 32, y: 5 * 64 + 32, type: 'nitro', active: true, respawnTimer: 0 },
         ] : []
       }
+    }
     case 'TICK_COUNTDOWN':
       if (state.countdownValue > 0) {
         return { ...state, countdownValue: state.countdownValue - 1 }
