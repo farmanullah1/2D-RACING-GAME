@@ -16,12 +16,6 @@ export const updateCamera = (
   camera.x = lerp(camera.x, targetX, 6 * delta)
   camera.y = lerp(camera.y, targetY, 6 * delta)
 
-  // Bounds clamping
-  const maxX = WORLD_WIDTH - canvasWidth / camera.zoom
-  const maxY = WORLD_HEIGHT - canvasHeight / camera.zoom
-  camera.x = Math.max(0, Math.min(camera.x, maxX))
-  camera.y = Math.max(0, Math.min(camera.y, maxY))
-
   // Dynamic zoom
   const speedFactor = Math.abs(target.speed) / target.maxSpeed
   camera.targetZoom = 1.0 - speedFactor * 0.15
