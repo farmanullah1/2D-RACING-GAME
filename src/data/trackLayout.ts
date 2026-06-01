@@ -49,8 +49,6 @@ const generateGrid = (): number[][] => {
   for (let r = 14; r <= 15; r++) for (let c = 8; c <= 11; c++) grid[r][c] = C
 
   // Add some Rumble Strips at corners
-  // Top-Right outer
-  for (let r = 7; r <= 7; r++) for (let c = 32; c <= 36; r++) grid[r][c] = B // Error in loop r++
   // I'll just write a helper for rectangles
   const fillRect = (r1: number, c1: number, r2: number, c2: number, type: number) => {
     for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) if (r >= 0 && r < 44 && c >= 0 && c < 44) grid[r][c] = type
