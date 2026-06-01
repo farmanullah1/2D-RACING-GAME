@@ -8,7 +8,7 @@ import { AIEngine } from '../engines/AIEngine'
 import { ParticleEngine } from '../engines/ParticleEngine'
 import { CollisionEngine } from '../engines/CollisionEngine'
 import { updateCamera } from '../hooks/useCamera'
-import { TRACK_GRID } from '../data/trackLayout'
+import { TRACKS } from '../data/tracks'
 import { buildOffscreenTrack } from '../data/tilesets'
 import { GameStatus, GameMode } from '../types/game.types'
 import Speedometer from './HUD/Speedometer'
@@ -27,6 +27,7 @@ const GameCanvas: React.FC = () => {
   const dispatch = useGameDispatch()
   const input = useKeyboardControls()
   const audio = useAudio(state.settings)
+  const track = useMemo(() => TRACKS[state.selectedTrack || 0], [state.selectedTrack])
   
   // Engines
   const physics = useMemo(() => new PhysicsEngine(), [])
@@ -36,7 +37,7 @@ const GameCanvas: React.FC = () => {
   const collisions = useMemo(() => new CollisionEngine(), [])
   const ghost = useMemo(() => new GhostEngine(), [])
   
-  const offscreenTrack = useMemo(() => buildOffscreenTrack(TRACK_GRID), [])
+  const offscreenTrack = useMemo(() => buildOffscreenTrack(track.grid), [track])
 
   useEffect(() => {
     if (state.mode === GameMode.TimeTrial) {
@@ -54,7 +55,7 @@ const GameCanvas: React.FC = () => {
 
     if (state.status === GameStatus.Racing) {
       // 1. Player Physics
-      physics.updateCar(state.player, input, delta, TRACK_GRID)
+      physics.updateCar(state.player, input, delta, track.grid)
 
       // Ghost recording
       if (state.mode === GameMode.TimeTrial) {
@@ -63,8 +64,8 @@ const GameCanvas: React.FC = () => {
       
       // 2. AI Physics & Logic
       state.aiDrivers.forEach(ai => {
-        const aiInput = aiEngine.updateDriver(ai, [state.player, ...state.aiDrivers.map(d => d.car)], delta)
-        physics.updateCar(ai.car, aiInput, delta, TRACK_GRID)
+        const aiInput = aiEngine.updateDriver(ai, [state.player, ...state.aiDrivers.map(d => d.car)], delta, track.waypoints)
+        physics.updateCar(ai.car, aiInput, delta, track.grid)
         aiEngine.applyRubberBanding(ai, state.player)
       })
 
@@ -74,8 +75,8 @@ const GameCanvas: React.FC = () => {
       })
       
       // 4. Laps & Checkpoints
-      collisions.checkCheckpoint(state.player, TRACK_GRID)
-      if (collisions.checkLapCompletion(state.player, TRACK_GRID)) {
+      collisions.checkCheckpoint(state.player, track.grid)
+      if (collisions.checkLapCompletion(state.player, track.grid)) {
         dispatch({ type: 'SHOW_TOAST', message: `LAP ${state.player.lap - 1} COMPLETE!` })
         if (state.mode === GameMode.TimeTrial) {
           ghost.stopRecording()
@@ -88,8 +89,8 @@ const GameCanvas: React.FC = () => {
       }
       
       state.aiDrivers.forEach(ai => {
-        collisions.checkCheckpoint(ai.car, TRACK_GRID)
-        collisions.checkLapCompletion(ai.car, TRACK_GRID)
+        collisions.checkCheckpoint(ai.car, track.grid)
+        collisions.checkLapCompletion(ai.car, track.grid)
       })
 
       // 5. Particles
@@ -111,7 +112,7 @@ const GameCanvas: React.FC = () => {
       
       dispatch({ type: 'UPDATE_PHYSICS', delta })
     }
-  }, [state, input, physics, aiEngine, particles, collisions, dispatch, audio, ghost])
+  }, [state, input, physics, aiEngine, particles, collisions, dispatch, audio, ghost, track])
 
   const render = useCallback(() => {
     const canvas = canvasRef.current
