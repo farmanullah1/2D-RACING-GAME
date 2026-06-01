@@ -1,6 +1,7 @@
 import { Vector2D } from "../types/game.types";
 import { TRACK_GRID, CHECKPOINTS, START_POSITION, START_ANGLE } from "./trackLayout";
 import { WAYPOINTS } from "./waypoints";
+import { PRO_TRACK } from "./proTrack";
 
 export interface TrackData {
   id: string
@@ -22,9 +23,10 @@ const generateReverseWaypoints = (waypoints: Vector2D[]): Vector2D[] => {
 }
 
 export const TRACKS: TrackData[] = [
+  PRO_TRACK,
   {
     id: 'circuit-alpha',
-    name: 'Circuit Alpha',
+    name: 'Circuit Alpha (Simple)',
     grid: TRACK_GRID,
     checkpoints: CHECKPOINTS,
     startPosition: START_POSITION,
