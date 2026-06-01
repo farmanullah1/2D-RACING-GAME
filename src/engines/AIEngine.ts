@@ -1,5 +1,4 @@
 import { AIDriver, Car, Vector2D, CarState, AIDifficulty } from "../types/game.types";
-import { WAYPOINTS } from "../data/waypoints";
 import { 
   AI_WAYPOINT_RADIUS, AI_SPEEDS, PLAYER_TURN_SPEED 
 } from "../constants/gameConstants";
@@ -9,14 +8,14 @@ import {
 import { CarInput } from "./PhysicsEngine";
 
 export class AIEngine {
-  updateDriver(ai: AIDriver, allCars: Car[], delta: number): CarInput {
+  updateDriver(ai: AIDriver, allCars: Car[], delta: number, waypoints: Vector2D[]): CarInput {
     const car = ai.car
-    const target = WAYPOINTS[ai.targetWaypointIndex]
+    const target = waypoints[ai.targetWaypointIndex]
     const dist = vecDist(car.position, target)
 
     // Advance waypoint
     if (dist < AI_WAYPOINT_RADIUS) {
-      ai.targetWaypointIndex = (ai.targetWaypointIndex + 1) % WAYPOINTS.length
+      ai.targetWaypointIndex = (ai.targetWaypointIndex + 1) % waypoints.length
     }
 
     // Advanced Steering: Look-ahead for smoother cornering
@@ -24,7 +23,7 @@ export class AIEngine {
     const lookAheadCount = 3
     let totalX = 0, totalY = 0
     for (let i = 0; i < lookAheadCount; i++) {
-      const wp = WAYPOINTS[(ai.targetWaypointIndex + i) % WAYPOINTS.length]
+      const wp = waypoints[(ai.targetWaypointIndex + i) % waypoints.length]
       const weight = 1 / (i + 1)
       totalX += (wp.x - car.position.x) * weight
       totalY += (wp.y - car.position.y) * weight
@@ -34,7 +33,7 @@ export class AIEngine {
     const steerInput = clamp(diff / 0.4, -1, 1)
 
     // Braking for corners: proactive look-ahead
-    const nextTarget = WAYPOINTS[(ai.targetWaypointIndex + 5) % WAYPOINTS.length]
+    const nextTarget = waypoints[(ai.targetWaypointIndex + 5) % waypoints.length]
     const nextAngle = Math.atan2(nextTarget.y - target.y, nextTarget.x - target.x)
     const cornerSharpness = Math.abs(angleDiff(targetAngle, nextAngle))
     
@@ -62,7 +61,7 @@ export class AIEngine {
     const nitro = !shouldBrake && cornerSharpness < 0.2 && car.nitro > 0.8
 
     // Stuck detection
-    this.respawnIfStuck(ai, delta)
+    this.respawnIfStuck(ai, delta, waypoints)
 
     return {
       accelerate,
@@ -73,12 +72,12 @@ export class AIEngine {
     }
   }
 
-  respawnIfStuck(ai: AIDriver, delta: number): void {
+  respawnIfStuck(ai: AIDriver, delta: number, waypoints: Vector2D[]): void {
     const car = ai.car
     if (car.speed < 10 && car.state !== CarState.Idle) {
       ai.reactionDelay += delta
       if (ai.reactionDelay > 3) {
-        const wp = WAYPOINTS[ai.targetWaypointIndex]
+        const wp = waypoints[ai.targetWaypointIndex]
         car.position = { ...wp }
         car.speed = 0
         ai.reactionDelay = 0

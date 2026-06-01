@@ -23,7 +23,7 @@ export interface Tile {
 
 // Car types
 export enum CarState { Idle, Accelerating, Braking, Drifting, Crashed, Finished }
-export type CarColor = 'red' | 'blue' | 'silver' | 'gold' | 'purple' | 'green'
+export type CarColor = 'red' | 'blue' | 'silver' | 'gold' | 'purple' | 'green' | 'pink' | 'cyan' | 'yellow' | 'white' | 'black' | 'orange'
 
 export interface Car {
   id: string
@@ -151,4 +151,5 @@ export interface GameState {
   fps: number
   difficulty: AIDifficulty
   selectedColor: CarColor
+  selectedTrack: number
 }

@@ -141,6 +141,10 @@ const GameCanvas: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'p') {
         dispatch({ type: 'PAUSE_TOGGLE' })
+      } else if (e.key.toLowerCase() === 't') {
+        dispatch({ type: 'TOGGLE_DAY' })
+      } else if (e.key.toLowerCase() === 'y') {
+        dispatch({ type: 'TOGGLE_RAIN' })
       }
     }
     window.addEventListener('resize', handleResize)

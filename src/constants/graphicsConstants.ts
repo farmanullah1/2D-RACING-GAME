@@ -23,6 +23,12 @@ export const COLORS = {
   carGold:   { body: '#e9c46a', accent: '#f4a261', rim: '#f1faee' },
   carPurple: { body: '#7b2d8b', accent: '#560bad', rim: '#c77dff' },
   carGreen:  { body: '#2d6a4f', accent: '#1b4332', rim: '#95d5b2' },
+  carPink:   { body: '#ff006e', accent: '#cc0058', rim: '#ffb3d1' },
+  carCyan:   { body: '#00f5ff', accent: '#00c4cc', rim: '#b3fdff' },
+  carYellow: { body: '#ffee00', accent: '#ccbe00', rim: '#fff9b3' },
+  carWhite:  { body: '#f8f9fa', accent: '#dee2e6', rim: '#ffffff' },
+  carBlack:  { body: '#212529', accent: '#111315', rim: '#495057' },
+  carOrange: { body: '#ff6b00', accent: '#cc5500', rim: '#ffcdb3' },
 
   roadDark:   '#1a1a2e',
   roadLight:  '#252540',

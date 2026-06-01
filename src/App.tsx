@@ -66,26 +66,29 @@ const initialState: GameState = {
   frameCount: 0,
   fps: 0,
   difficulty: AIDifficulty.Medium,
-  selectedColor: 'red'
+  selectedColor: 'red',
+  selectedTrack: 0
 }
 
+import { TRACKS } from './data/tracks'
 import StartMenu from './components/Menus/StartMenu'
 import MessageToast from './components/UI/MessageToast'
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case 'START_RACE':
+      const track = TRACKS[state.selectedTrack]
       return {
         ...state,
         status: GameStatus.Countdown,
         mode: action.mode,
         countdownValue: 3,
         raceTime: 0,
-        player: createInitialCar('player', true, state.selectedColor),
+        player: { ...createInitialCar('player', true, state.selectedColor), position: { ...track.startPosition }, angle: track.startAngle },
         aiDrivers: action.mode === GameMode.AIRace ? [
-          { car: createInitialCar('ai1', false, 'blue'), targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
-          { car: createInitialCar('ai2', false, 'silver'), targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
-          { car: createInitialCar('ai3', false, 'gold'), targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
+          { car: { ...createInitialCar('ai1', false, 'blue'), position: { ...track.startPosition }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
+          { car: { ...createInitialCar('ai2', false, 'silver'), position: { ...track.startPosition }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
+          { car: { ...createInitialCar('ai3', false, 'gold'), position: { ...track.startPosition }, angle: track.startAngle }, targetWaypointIndex: 0, difficulty: state.difficulty, aggression: 0.5, reactionDelay: 0, rubberBanding: 0.5 },
         ] : []
       }
     case 'TICK_COUNTDOWN':
@@ -109,12 +112,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       }
     case 'SHOW_TOAST':
       return { ...state, toastMessage: action.message, toastTimer: 2.0 }
+    case 'TOGGLE_DAY':
+      return { ...state, isNight: !state.isNight, currentDayTime: state.isNight ? 0.5 : 0.9 }
+    case 'TOGGLE_RAIN':
+      return { ...state, isRaining: !state.isRaining }
     case 'RACE_FINISHED':
       return { ...state, status: GameStatus.RaceFinished }
     case 'RESET_RACE':
       return gameReducer(state, { type: 'START_RACE', mode: state.mode })
     case 'SET_COLOR':
       return { ...state, selectedColor: action.color }
+    case 'SET_TRACK':
+      return { ...state, selectedTrack: action.trackIndex }
     case 'SET_DIFFICULTY':
       return { ...state, difficulty: action.difficulty }
     case 'SET_FPS':
